@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
+        integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+
+    <link rel="stylesheet" href="style.css" type="text/css">
+    <script src="app.js"></script>
+    <title>Train Schedule</title>
+</head>
+
+<body>
+    <div class="jumbotron">
+        <h1>Anytime is Train Time</h1>
+        <p> Choo Choo. Chee Chee. </p>
+        <!-- <p id="time"></p> -->
+    </div>
+
+    <div class="panel panel-primary">
+        <div class="panel-heading">Current Train Schedule</div>
+
+        <!-- Add content category -->
+        <table class="table" id='train-table'>
+            <thead>
+                <tr>
+                    <th id="trainName"> Train Name </th>
+                    <th id="destination"> Destination </th>
+                    <th id="frequency"> Frequency (min) </th>
+                    <th id="nextArrival"> Next Arrival </th>
+                    <th id="minutesAway"> Minutes Away </th>
+                </tr>
+            </thead>
+            <tbody id="table-info">
+
+            </tbody>
+        </table>
+    </div>
+    <!-- New Train panel contents -->
+    <div class="panel panel-primary" id="panel">
+        <div class="panel-heading">Add Train</div>
+        <div class="panel-body">
+            <div class="form-input">
+                <label for="trainNameInput"> Train Name </label>
+                <input type="text" class="form-control" id="trainNameInput" />
+            </div>
+
+            <div class="form-input">
+                <label for="destinationInput">Destination</label>
+                <input type="text" class="form-control" id="destinationInput" />
+            </div>
+
+            <div class="form-input">
+                <label for="firstTrainTimeInput"> First Train Time (HH:mm - Military Time)</label> <br>
+                <input type="time" class="form-control" id="firstTrainTimeInput" placeholder="00:00" />
+            </div>
+
+            <div class="form-input">
+                <label for="frequencyInput">Frequency</label>
+                <input type="number" class="form-control" id="frequencyInput" />
+            </div>
+
+            <button type="submit" class="btn btn-primary" id="submitButton">Submit</button>
+
+        </div>
+    </div>
+    <!--script sources-->
+    <script src="https://code.jquery.com/jquery.js"></script>
+    <script src="https://cdn.jsdelivr.net/momentjs/2.12.0/moment.min.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/4.5.0/firebase.js"></script>
+
+
+    <!-- The core Firebase JS SDK is always required and must be listed first -->
+    <script src="https://www.gstatic.com/firebasejs/7.5.0/firebase-app.js"></script>
+
+    <!-- TODO: Add SDKs for Firebase products that you want to use
+     https://firebase.google.com/docs/web/setup#available-libraries -->
+    <script src="https://www.gstatic.com/firebasejs/7.5.0/firebase-database.js"></script>
+
+    <script>
+        $(document).ready(function () {
+            // Your web app's Firebase configuration
+            var firebaseConfig = {
+                apiKey: "AIzaSyCvlJz5NIeJ_LxnCxZRE-wmJbEaiMcbtpY",
+                authDomain: "train-schedule-bbef2.firebaseapp.com",
+                databaseURL: "https://train-schedule-bbef2.firebaseio.com",
+                projectId: "train-schedule-bbef2",
+                storageBucket: "train-schedule-bbef2.appspot.com",
+
+            };
+            // Initialize Firebase
+            firebase.initializeApp(firebaseConfig);
+
+            var database = firebase.database();
+
+            $("#submitButton").on("click", function (event) {
+
+                event.preventDefault();
+
+                //  Grab Input values IF the conditon above is true
+                var name = $("#trainNameInput").val().trim();
+                var destination = $("#destinationInput").val().trim();
+                var firstArrival = $("#firstTrainTimeInput").val().trim();
+                
+                var frequency = $("#frequencyInput").val().trim();
+
+                var trainFirebaseData = {
+                    DatatrainName: name,
+                    DataDest: destination,
+                    DatafirstArrival: firstArrival,
+                    Datafrequency: frequency,
+                    TimeStamp: firebase.database.ServerValue.TIMESTAMP
+                };
+
+                database.ref().push(trainFirebaseData);
+
+                $("#trainNameInput").val("");
+                $("#destinationInput").val("");
+                $("#firstTrainTimeInput").val("");
+                $("#frequencyInput").val("");
+
+
+            });
+
+            database.ref().on("child_added", function (childSnapshot) {
+                //  make variable to ease reference
+                var snapName = childSnapshot.val().DatatrainName;
+                var snapDest = childSnapshot.val().DataDest;
+                var snapFreq = childSnapshot.val().Datafrequency;
+                var snapArrival = childSnapshot.val().DatafirstArrival;
+                
+                console.log(snapArrival);
+                
+                
+                
+                
+                
+                var currentTime = moment();
+                console.log("Current Time: " + moment(currentTime).format("hh:mm"));
+                var firstArrivalConverted = moment(snapArrival, "HH:mm");
+                console.log(firstArrivalConverted);
+                
+                var diffTime = moment().diff(moment(firstArrivalConverted), "minutes");
+                console.log(diffTime);
+                
+            
+                
+                // Time Remain
+                var tRemainder = diffTime % snapFreq;
+                console.log(tRemainder);
+                
+                // Minute Until Train
+                var minutesAway = snapFreq - tRemainder;
+                console.log("minutes until: " + minutesAway);
+                
+                // Next Train
+                var nextTrain = moment().add(minutesAway, "minutes");
+                console.log("arrival time: " + moment(nextTrain).format("hh:mm"))
+                
+                var newRow = $("<tr>").append(
+                    $("<td>").text(snapName),
+                    $("<td>").text(snapDest),
+                    $("<td>").text(snapFreq),
+                    $("<td>").text(moment(nextTrain).format("hh:mm")),
+                    $("<td>").text(minutesAway),
+   
+                );
+
+                $("#table-info").append(newRow);    
+                
+                
+            });
+        });
+        
+        </script>
+
+</body>
+
+</html>

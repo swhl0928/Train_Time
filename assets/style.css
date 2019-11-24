@@ -1,0 +1,13 @@
+body{
+    margin:30px;
+}
+.jumbotron {
+    text-align: center;
+    background-color:navy;
+    color:white;
+    border:black;
+      
+}
+.panel-heading{
+    background-color: thistle;
+}
